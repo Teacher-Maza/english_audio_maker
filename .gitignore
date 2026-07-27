@@ -1,0 +1,67 @@
+# Private local evidence
+.local_private_archive/
+checkpoints/
+backups/
+AGENTS.md
+
+# Private blind-review and evaluation material
+config/blind_voice_review_key.json
+config/blind_voice_review_responses.json
+docs/BLIND_KEY_6U.json
+docs/release_audit_provisional/
+evaluation/**/private/
+evaluation/**/audit/
+evaluation/**/VALIDATION_RESULTS.json
+evaluation/**/*answer_key*
+evaluation/**/*ANSWER_KEY*
+evaluation/**/*safe_log.json
+evaluation/**/generation_logs/
+evaluation/**/generation_receipts.json
+evaluation/**/results/
+
+# Python environments and caches
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local runtime, models and caches
+runtime/
+cache/
+models/
+
+# Generated work, packages and internal manifests
+temp/
+build/
+dist/
+manifest/
+*.log
+*.tmp
+*.zip
+*.7z
+*.rar
+
+# Generated audio and binary dependencies
+audios/
+*.wav
+*.mp3
+*.flac
+*.ogg
+*.exe
+*.msi
+*.dll
+*.pyd
+
+# Local environment and editor state
+.env
+.env.*
+!.env.example
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini

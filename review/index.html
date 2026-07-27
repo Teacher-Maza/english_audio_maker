@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Prévia de vozes Kokoro V2</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>English Audio Maker V2</h1>
+    <p>Prévia local das vozes Kokoro usando somente os samples validados na Fase 6U.</p>
+  </header>
+  <main class="workspace">
+    <section class="panel" aria-labelledby="voices-title">
+      <div class="panel-header">
+        <h2 id="voices-title">Vozes disponíveis</h2>
+        <span class="count" id="voice-count">Carregando catálogo...</span>
+      </div>
+      <div class="voice-list" id="voice-list" aria-label="Lista rolável de vozes"></div>
+    </section>
+    <section class="panel player-panel" aria-labelledby="preview-title">
+      <div class="panel-header"><h2 id="preview-title">Controle de prévia</h2></div>
+      <div class="mode-strip" aria-label="Modo futuro da V2">
+        <button type="button" class="mode-button is-active" data-mode="narration">Narração</button>
+        <button type="button" class="mode-button" data-mode="dialogue_ab">Conversação A/B</button>
+      </div>
+      <div class="summary">
+        <div class="summary-item"><span>Voz selecionada</span><strong id="selected-voice">Nenhuma</strong></div>
+        <div class="summary-item"><span>Prévia ativa</span><strong id="now-playing">Nenhuma voz tocando</strong></div>
+      </div>
+      <div class="controls" aria-label="Controles de reprodução">
+        <button type="button" class="icon-button" id="pause-resume" title="Pausar" aria-label="Pausar ou retomar" disabled>⏸</button>
+        <button type="button" class="icon-button" id="restart-preview" title="Reiniciar" aria-label="Reiniciar prévia" disabled>↺</button>
+        <button type="button" class="icon-button" id="stop-preview" title="Parar" aria-label="Parar prévia" disabled>■</button>
+      </div>
+      <p class="status-box" id="preview-status" role="status" aria-live="polite"></p>
+      <div class="rule-box">
+        <p><strong>Ouvir:</strong> o botão ▶ toca a amostra sem selecionar a voz.</p>
+        <p><strong>Selecionar:</strong> clique no nome da voz; isso não inicia o áudio.</p>
+        <p>A prévia para ao trocar modo, iniciar geração ou fechar esta página.</p>
+      </div>
+      <audio id="preview-audio" class="hidden-audio" preload="none"></audio>
+    </section>
+  </main>
+  <script src="voice-preview-data.js"></script>
+  <script src="preview-controller.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
+

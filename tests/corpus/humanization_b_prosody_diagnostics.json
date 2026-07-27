@@ -1,0 +1,27 @@
+{
+  "schema_version": "1.0",
+  "variant": "B",
+  "description": "Fixed diagnostic corpus for prosodic segmentation. The Humanization A corpus remains unchanged.",
+  "cases": [
+    {
+      "id": "punctuation_and_connectors",
+      "max_chars": 160,
+      "text": "Although the forecast looked uncertain, the production team kept the original plan; however, they prepared a quieter backup room: therefore, the recording could continue without changing the voice, the speed, or the words."
+    },
+    {
+      "id": "multiline_list",
+      "max_chars": 160,
+      "text": "Before the session, verify the following items:\n1. Select the approved voice.\n2. Confirm the output folder.\n3. Keep the speed at one point zero.\n- Do not rewrite the script.\n- Do not add effects."
+    },
+    {
+      "id": "long_sentence_and_dash",
+      "max_chars": 160,
+      "text": "The narrator begins with a compact explanation, continues through a deliberately extended clause that contains enough detail to exceed the conservative memory-aware limit, and then reaches the practical conclusion — meanwhile, every original character remains in the same order and every complete word remains intact for synthesis."
+    },
+    {
+      "id": "dialogue_connectors",
+      "max_chars": 160,
+      "text": "A: First, we review the long sentence; then, we test the list, and finally, we confirm the result.\nB: However, the voices, speed, pauses, fade, Kokoro, FFmpeg, and MP3 path must remain unchanged."
+    }
+  ]
+}

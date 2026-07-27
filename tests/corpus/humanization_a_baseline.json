@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.0",
+  "variant": "A",
+  "description": "Fixed non-humanized comparison corpus for English Audio Maker V2.",
+  "audio_contract": {
+    "engine": "kokoro",
+    "device": "cpu",
+    "speed": 1.0,
+    "resource_profile": "economic",
+    "sample_rate_hz": 24000,
+    "initial_silence_ms": 650,
+    "between_items_ms": 250,
+    "final_silence_ms": 300,
+    "fade_ms": 50,
+    "mp3_bitrate": "128k",
+    "humanization": false
+  },
+  "cases": [
+    {
+      "id": "baseline_a_narration",
+      "mode": "narration",
+      "project_name": "baseline_a_narration",
+      "narration_voice_id": "af_heart",
+      "text": "At sunrise, the research team opened the quiet studio and checked every cable. Clear speech, steady pacing, and careful punctuation make this passage useful for repeatable comparison. Numbers such as twelve, forty-seven, and two hundred should remain easy to understand. The final sentence closes calmly, without added emphasis or dramatic timing."
+    },
+    {
+      "id": "baseline_a_dialogue",
+      "mode": "dialogue_ab",
+      "project_name": "baseline_a_dialogue",
+      "voice_a_id": "bf_emma",
+      "voice_b_id": "am_michael",
+      "text": "A: Good morning. Did the overnight test finish correctly?\nB: Yes. The report shows a stable process and a complete audio file.\nA: Please check the pauses, pronunciation, and the transition between speakers.\nB: Everything is ready for a direct baseline comparison."
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+kokoro==0.9.4
+soundfile==0.13.1
+psutil==7.0.0
+

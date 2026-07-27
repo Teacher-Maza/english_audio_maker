@@ -1,0 +1,69 @@
+{
+  "schema_version": "2.0",
+  "default_profile": "automatic",
+  "profiles": {
+    "automatic": {
+      "label": "Automatico"
+    },
+    "economic": {
+      "label": "Economico",
+      "threads": 2,
+      "chunk_chars": 280,
+      "throttle_seconds": 0.0
+    },
+    "balanced": {
+      "label": "Equilibrado",
+      "cpu_fraction": 0.5,
+      "max_threads": 4,
+      "chunk_chars": 280,
+      "throttle_seconds": 0.0
+    }
+  },
+  "adaptive": {
+    "minimum_system_reserve_gb": 1.25,
+    "system_reserve_fraction": 0.15,
+    "cold_start_headroom_gb": 0.5,
+    "runtime_recovery_ram_gb": 1.25,
+    "recovery_poll_seconds": 1.0,
+    "max_recovery_wait_seconds": 20.0,
+    "low_ram_gb": 2.25,
+    "medium_ram_gb": 4.0,
+    "high_cpu_percent": 80.0,
+    "medium_cpu_percent": 55.0,
+    "tiers": {
+      "conservative": {
+        "max_threads": 1,
+        "chunk_chars": 160,
+        "throttle_seconds": 0.75
+      },
+      "reduced": {
+        "max_threads": 2,
+        "chunk_chars": 220,
+        "throttle_seconds": 0.25
+      },
+      "normal": {
+        "max_threads": 4,
+        "chunk_chars": 280,
+        "throttle_seconds": 0.0
+      }
+    }
+  },
+  "thresholds": {
+    "ram_warn_headroom_gb": 0.75,
+    "disk_block_gb": 2.0,
+    "disk_warn_gb": 5.0,
+    "battery_block_percent": 15,
+    "battery_warn_percent": 30
+  },
+  "monitor_interval_seconds": 1.0,
+  "process_isolation": {
+    "enabled": true,
+    "start_method": "spawn",
+    "poll_seconds": 0.1,
+    "cancel_grace_seconds": 20.0,
+    "join_seconds": 8.0,
+    "scope": "one_kokoro_generation_per_child"
+  },
+  "measured_peak_ram_gb_baseline": 3.0,
+  "streaming_chunk_retention": "one_chunk_only"
+}

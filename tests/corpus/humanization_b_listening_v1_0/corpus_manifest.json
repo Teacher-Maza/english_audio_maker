@@ -1,0 +1,554 @@
+{
+  "schema_version": "1.0",
+  "corpus_id": "humanization_b_listening_v1_0",
+  "title": "PROJETO VTS — Corpus controlado A×B para segmentação prosódica",
+  "created_date": "2026-07-20",
+  "language": "en",
+  "status": "frozen_for_listening_test",
+  "purpose": "Comparar cegamente o segmentador original da Variante A com o segmentador prosódico da Variante B. O corpus foi desenhado para expor diferenças de fraseado, continuidade, monotonia e pausas sem testar pronúncia rara, números ou pós-processamento.",
+  "source_of_truth": "Os bytes dos arquivos TXT e seus SHA-256 neste manifesto.",
+  "global_rules": {
+    "use_exact_text_bytes": true,
+    "rewrite_translate_correct_or_normalize_text": false,
+    "preserve_punctuation_whitespace_and_paragraphs": true,
+    "same_input_for_a_and_b": true,
+    "only_intended_variable": "text segmentation strategy",
+    "variant_a": "legacy/original segmentation",
+    "variant_b": "humanization_b_prosodic_v1",
+    "same_voice_speed_profile_and_audio_assembly": true,
+    "do_not_add": [
+      "pitch shift",
+      "emotion control",
+      "EQ",
+      "compression",
+      "loudness processing",
+      "crossfade changes",
+      "breaths",
+      "room tone",
+      "text rewriting",
+      "random prosody"
+    ],
+    "full_text_in_normal_logs": false,
+    "offline_only": true
+  },
+  "fixed_generation_defaults": {
+    "narration_voice": "af_heart",
+    "dialogue_voice_a": "am_michael",
+    "dialogue_voice_b": "bf_emma",
+    "speed": 1.0,
+    "resource_profile": "economic",
+    "expected_max_chars": 280,
+    "initial_silence_ms": 650,
+    "inter_segment_silence_ms": 250,
+    "final_silence_ms": 300,
+    "fade_ms_per_segment": 50,
+    "working_audio": "PCM16 mono 24000 Hz",
+    "final_audio": "MP3 128 kbit/s",
+    "note": "Caso o ambiente obrigue outra configuração, A e B devem usar exatamente a mesma e a divergência deve ser registrada."
+  },
+  "blind_test": {
+    "pairing": "one A and one B output per case",
+    "neutral_file_names": "case_<nn>_option_<1|2>.mp3",
+    "hide_variant_mapping_until_all_cases_are_submitted": true,
+    "randomize_option_order": true,
+    "deterministic_seed": 20260720,
+    "minimum_playback_requirement": "each option played at least once",
+    "keyboard_required": false,
+    "mouse_only": true,
+    "show_source_text_during_rating": false,
+    "allow_source_text_reveal_after_case_submission": true
+  },
+  "rating_scale": {
+    "type": "integer",
+    "min": 1,
+    "max": 5,
+    "higher_is_better": true,
+    "dimensions": [
+      {
+        "id": "naturalness",
+        "label": "Naturalidade"
+      },
+      {
+        "id": "fluency",
+        "label": "Fluidez"
+      },
+      {
+        "id": "low_monotony",
+        "label": "Pouca monotonia",
+        "anchors": {
+          "1": "muito monótona",
+          "5": "pouco monótona"
+        }
+      },
+      {
+        "id": "pause_quality",
+        "label": "Qualidade das pausas"
+      },
+      {
+        "id": "clarity",
+        "label": "Clareza"
+      },
+      {
+        "id": "sentence_continuity",
+        "label": "Continuidade das frases"
+      },
+      {
+        "id": "overall_preference",
+        "label": "Qualidade geral"
+      }
+    ],
+    "forced_choice": {
+      "required": true,
+      "options": [
+        "option_1",
+        "option_2",
+        "tie"
+      ],
+      "label": "Qual opção você prefere?"
+    }
+  },
+  "problem_checklist": [
+    {
+      "id": "none",
+      "label": "Nenhum problema"
+    },
+    {
+      "id": "cut_word",
+      "label": "Palavra cortada"
+    },
+    {
+      "id": "wrong_pause",
+      "label": "Pausa em local errado"
+    },
+    {
+      "id": "excessive_pause",
+      "label": "Pausa excessiva"
+    },
+    {
+      "id": "fragmentation",
+      "label": "Frase fragmentada"
+    },
+    {
+      "id": "strange_rhythm",
+      "label": "Ritmo estranho"
+    },
+    {
+      "id": "missing_or_repeated_content",
+      "label": "Perda ou repetição de conteúdo"
+    },
+    {
+      "id": "pronunciation",
+      "label": "Pronúncia problemática"
+    },
+    {
+      "id": "volume_difference",
+      "label": "Diferença de volume"
+    }
+  ],
+  "correction_check": {
+    "enabled": true,
+    "label": "Este problema foi corrigido na outra opção?",
+    "options": [
+      "yes",
+      "no",
+      "not_applicable"
+    ]
+  },
+  "export": {
+    "formats": [
+      "json",
+      "csv"
+    ],
+    "include_hidden_variant_mapping_only_after_completion": true,
+    "include_case_hashes": true,
+    "include_timestamp": true,
+    "server_required": false
+  },
+  "acceptance_guards": [
+    "Nenhum caractere, palavra ou linha pode ser perdido, inserido ou reordenado.",
+    "Os dois áudios de cada par devem usar o mesmo texto, voz, speed, perfil e montagem.",
+    "A interface não pode revelar A/B antes da conclusão.",
+    "A Variante B só é promissora se melhorar casos complexos sem piorar controles curtos ou fragmentar o caso 10."
+  ],
+  "cases": [
+    {
+      "id": "short_control",
+      "mode": "narration",
+      "title": "Controle curto",
+      "objective": "Confirmar que a segmentação B não piora frases simples nem cria pausas desnecessárias.",
+      "diagnostic_targets": [
+        "sentence_boundary",
+        "single_comma",
+        "short_text",
+        "anti_oversegmentation"
+      ],
+      "main_risks": [
+        "unnecessary_pause",
+        "loss_of_continuity"
+      ],
+      "file": "01_short_control.txt",
+      "encoding": "utf-8",
+      "line_endings": "LF",
+      "sha256": "5a039a277fde9cfea05388b09a260a1788c9bd5f6d520ab977e0cd10d7f7b966",
+      "character_count_without_final_newline": 96,
+      "word_count": 15,
+      "line_count": 1,
+      "paragraph_count": 1,
+      "generation": {
+        "voice": "af_heart",
+        "speed": 1.0,
+        "resource_profile": "economic"
+      },
+      "hidden_from_evaluator": [
+        "objective",
+        "diagnostic_targets",
+        "main_risks",
+        "generation",
+        "sha256"
+      ]
+    },
+    {
+      "id": "long_sentence",
+      "mode": "narration",
+      "title": "Frase longa",
+      "objective": "Medir se a B organiza uma sentença longa em unidades de fala mais naturais sem quebrar o raciocínio.",
+      "diagnostic_targets": [
+        "long_sentence",
+        "although",
+        "so",
+        "multiple_clauses",
+        "comma_boundaries"
+      ],
+      "main_risks": [
+        "flat_delivery",
+        "excessive_fragmentation",
+        "pause_in_wrong_place"
+      ],
+      "file": "02_long_sentence.txt",
+      "encoding": "utf-8",
+      "line_endings": "LF",
+      "sha256": "10b98cbce5b04784eaf3788a05767fade0a87f372d55a9142709160e496bec26",
+      "character_count_without_final_newline": 284,
+      "word_count": 44,
+      "line_count": 1,
+      "paragraph_count": 1,
+      "generation": {
+        "voice": "af_heart",
+        "speed": 1.0,
+        "resource_profile": "economic"
+      },
+      "hidden_from_evaluator": [
+        "objective",
+        "diagnostic_targets",
+        "main_risks",
+        "generation",
+        "sha256"
+      ]
+    },
+    {
+      "id": "strong_commas",
+      "mode": "narration",
+      "title": "Vírgulas fortes",
+      "objective": "Avaliar se vírgulas relevantes viram fronteiras úteis sem transformar cada vírgula em corte.",
+      "diagnostic_targets": [
+        "strong_commas",
+        "embedded_clause",
+        "coordination",
+        "list_like_rhythm"
+      ],
+      "main_risks": [
+        "comma_oversegmentation",
+        "choppy_rhythm",
+        "monotony"
+      ],
+      "file": "03_strong_commas.txt",
+      "encoding": "utf-8",
+      "line_endings": "LF",
+      "sha256": "083bdd4d0e77682576f9bd3c826c4a28039f666b993a5cde3567062e15f6b93d",
+      "character_count_without_final_newline": 249,
+      "word_count": 47,
+      "line_count": 1,
+      "paragraph_count": 1,
+      "generation": {
+        "voice": "af_heart",
+        "speed": 1.0,
+        "resource_profile": "economic"
+      },
+      "hidden_from_evaluator": [
+        "objective",
+        "diagnostic_targets",
+        "main_risks",
+        "generation",
+        "sha256"
+      ]
+    },
+    {
+      "id": "colon_semicolon_list",
+      "mode": "narration",
+      "title": "Lista com dois-pontos e ponto e vírgula",
+      "objective": "Testar introdução de lista, itens coordenados e fechamento final.",
+      "diagnostic_targets": [
+        "colon",
+        "semicolon",
+        "ordered_list",
+        "final_focus"
+      ],
+      "main_risks": [
+        "uneven_list_rhythm",
+        "excessive_pause",
+        "weak_conclusion"
+      ],
+      "file": "04_colon_semicolon_list.txt",
+      "encoding": "utf-8",
+      "line_endings": "LF",
+      "sha256": "4b74254fdee14c62d9ac74cdb004fb29db3eb7114dd7b6e671c827e687a750c1",
+      "character_count_without_final_newline": 194,
+      "word_count": 30,
+      "line_count": 1,
+      "paragraph_count": 1,
+      "generation": {
+        "voice": "af_heart",
+        "speed": 1.0,
+        "resource_profile": "economic"
+      },
+      "hidden_from_evaluator": [
+        "objective",
+        "diagnostic_targets",
+        "main_risks",
+        "generation",
+        "sha256"
+      ]
+    },
+    {
+      "id": "connectors_contrast",
+      "mode": "narration",
+      "title": "Conectores e contraste",
+      "objective": "Verificar se conectores semânticos ajudam a estruturar contraste, causa e concessão.",
+      "diagnostic_targets": [
+        "but",
+        "because",
+        "however",
+        "when",
+        "although",
+        "sentence_transition"
+      ],
+      "main_risks": [
+        "connector_pause_error",
+        "flat_contrast",
+        "fragmentation"
+      ],
+      "file": "05_connectors_contrast.txt",
+      "encoding": "utf-8",
+      "line_endings": "LF",
+      "sha256": "081272d5ce66862fa9a048e27e91c2f8fe1871f2d213d9d7616483a0fb9b6ad9",
+      "character_count_without_final_newline": 288,
+      "word_count": 44,
+      "line_count": 1,
+      "paragraph_count": 1,
+      "generation": {
+        "voice": "af_heart",
+        "speed": 1.0,
+        "resource_profile": "economic"
+      },
+      "hidden_from_evaluator": [
+        "objective",
+        "diagnostic_targets",
+        "main_risks",
+        "generation",
+        "sha256"
+      ]
+    },
+    {
+      "id": "dash_parenthetical",
+      "mode": "narration",
+      "title": "Travessões e comentário intercalado",
+      "objective": "Avaliar abertura e fechamento de comentário intercalado, seguidos de causa e conclusão.",
+      "diagnostic_targets": [
+        "em_dash_pair",
+        "parenthetical",
+        "because",
+        "semicolon",
+        "instead"
+      ],
+      "main_risks": [
+        "broken_parenthetical",
+        "pause_mismatch",
+        "unnatural_restart"
+      ],
+      "file": "06_dash_parenthetical.txt",
+      "encoding": "utf-8",
+      "line_endings": "LF",
+      "sha256": "0cd2d4cb3709cc18e5b97750d8ba9e930e05bf2d9d636753af1b81556e3b56f9",
+      "character_count_without_final_newline": 183,
+      "word_count": 29,
+      "line_count": 1,
+      "paragraph_count": 1,
+      "generation": {
+        "voice": "af_heart",
+        "speed": 1.0,
+        "resource_profile": "economic"
+      },
+      "hidden_from_evaluator": [
+        "objective",
+        "diagnostic_targets",
+        "main_risks",
+        "generation",
+        "sha256"
+      ]
+    },
+    {
+      "id": "paragraph_flow",
+      "mode": "narration",
+      "title": "Fluxo entre parágrafos",
+      "objective": "Medir continuidade dentro dos parágrafos e fechamento perceptível entre ideias maiores.",
+      "diagnostic_targets": [
+        "paragraph_breaks",
+        "sentence_flow",
+        "while",
+        "when",
+        "final_paragraph_closure"
+      ],
+      "main_risks": [
+        "paragraphs_sound_identical",
+        "excessive_gap",
+        "weak_continuity"
+      ],
+      "file": "07_paragraph_flow.txt",
+      "encoding": "utf-8",
+      "line_endings": "LF",
+      "sha256": "1b35c1592040eaf36929b8467714216f0e39bebbe717d5f50c03e50c3ea23ff9",
+      "character_count_without_final_newline": 338,
+      "word_count": 55,
+      "line_count": 5,
+      "paragraph_count": 3,
+      "generation": {
+        "voice": "af_heart",
+        "speed": 1.0,
+        "resource_profile": "economic"
+      },
+      "hidden_from_evaluator": [
+        "objective",
+        "diagnostic_targets",
+        "main_risks",
+        "generation",
+        "sha256"
+      ]
+    },
+    {
+      "id": "dialogue_fast_response",
+      "mode": "dialogue_ab",
+      "title": "Diálogo com respostas rápidas",
+      "objective": "Testar alternância curta, pergunta-resposta e continuidade sem pausas desnecessárias dentro dos turnos.",
+      "diagnostic_targets": [
+        "question_answer",
+        "short_turns",
+        "fast_exchange",
+        "speaker_change"
+      ],
+      "main_risks": [
+        "slow_turn_taking",
+        "turn_fragmentation",
+        "robotic_alternation"
+      ],
+      "file": "08_dialogue_fast_response.txt",
+      "encoding": "utf-8",
+      "line_endings": "LF",
+      "sha256": "417ea275d95fbce503d728acff15b34e3bbe75c0f7ef65405275d3f6c5a150ec",
+      "character_count_without_final_newline": 183,
+      "word_count": 34,
+      "line_count": 4,
+      "paragraph_count": 1,
+      "generation": {
+        "voice_a": "am_michael",
+        "voice_b": "bf_emma",
+        "speed": 1.0,
+        "resource_profile": "economic"
+      },
+      "hidden_from_evaluator": [
+        "objective",
+        "diagnostic_targets",
+        "main_risks",
+        "generation",
+        "sha256"
+      ]
+    },
+    {
+      "id": "dialogue_reflective_response",
+      "mode": "dialogue_ab",
+      "title": "Diálogo com resposta reflexiva",
+      "objective": "Avaliar turnos mais longos, explicação causal, contraste e fechamento da resposta.",
+      "diagnostic_targets": [
+        "reflective_answer",
+        "well",
+        "so",
+        "but",
+        "long_turn",
+        "question_answer"
+      ],
+      "main_risks": [
+        "flat_long_turn",
+        "wrong_internal_pause",
+        "disconnected_explanation"
+      ],
+      "file": "09_dialogue_reflective_response.txt",
+      "encoding": "utf-8",
+      "line_endings": "LF",
+      "sha256": "ccaaaac50b8b17b920de4f00c82ba3676a1d4146ff52940d98a3d72606ad9723",
+      "character_count_without_final_newline": 409,
+      "word_count": 71,
+      "line_count": 6,
+      "paragraph_count": 1,
+      "generation": {
+        "voice_a": "am_michael",
+        "voice_b": "bf_emma",
+        "speed": 1.0,
+        "resource_profile": "economic"
+      },
+      "hidden_from_evaluator": [
+        "objective",
+        "diagnostic_targets",
+        "main_risks",
+        "generation",
+        "sha256"
+      ]
+    },
+    {
+      "id": "anti_fragmentation",
+      "mode": "narration",
+      "title": "Antifragmentação",
+      "objective": "Detectar se a B corta demais uma enumeração curta e trata vírgulas leves como finais de frase.",
+      "diagnostic_targets": [
+        "many_commas",
+        "coordination",
+        "but",
+        "or",
+        "single_sentence"
+      ],
+      "main_risks": [
+        "excessive_fragmentation",
+        "too_many_pauses",
+        "loss_of_flow"
+      ],
+      "file": "10_anti_fragmentation.txt",
+      "encoding": "utf-8",
+      "line_endings": "LF",
+      "sha256": "8aa7c4bffe5f9e14924d7b863ff1a9803e15c7d9d2a6f161b194d2a81a7939fc",
+      "character_count_without_final_newline": 170,
+      "word_count": 32,
+      "line_count": 1,
+      "paragraph_count": 1,
+      "generation": {
+        "voice": "af_heart",
+        "speed": 1.0,
+        "resource_profile": "economic"
+      },
+      "hidden_from_evaluator": [
+        "objective",
+        "diagnostic_targets",
+        "main_risks",
+        "generation",
+        "sha256"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "schema_version": "1.0",
+  "project_root_strategy": "resolve_runtime",
+  "ffmpeg_exe": "tools/ffmpeg.exe",
+  "cache_dir": "cache",
+  "models_dir": "models",
+  "audio_dir": "audios",
+  "generation_output_dir": "audios/generated",
+  "kokoro_config": "models/Kokoro-82M/config.json",
+  "kokoro_model": "models/Kokoro-82M/kokoro-v1_0.pth",
+  "voices_catalog": "config/voices.json"
+}
