@@ -15,8 +15,8 @@ from v2_kokoro.app.core.validators import validate_request
 from v2_kokoro.app.core.voice_registry import VoiceRegistry
 
 
-assert (SPEECH_SPEED_SLOW, SPEECH_SPEED_NORMAL, SPEECH_SPEED_FAST) == (0.90, 1.00, 1.10)
-assert ALLOWED_SPEECH_SPEEDS == frozenset({0.90, 1.00, 1.10})
+assert (SPEECH_SPEED_SLOW, SPEECH_SPEED_NORMAL, SPEECH_SPEED_FAST) == (0.75, 1.00, 1.25)
+assert ALLOWED_SPEECH_SPEEDS == frozenset({0.75, 1.00, 1.25})
 assert GenerationRequest(mode=MODE_NARRATION, project_name="default", text="Text.").speed == 1.00
 
 registry = VoiceRegistry()

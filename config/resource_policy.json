@@ -20,6 +20,9 @@
     }
   },
   "adaptive": {
+    "speedup_samples": 3,
+    "speedup_stable_seconds": 5.0,
+    "emergency_free_ram_gb": 0.5,
     "minimum_system_reserve_gb": 1.25,
     "system_reserve_fraction": 0.15,
     "cold_start_headroom_gb": 0.5,

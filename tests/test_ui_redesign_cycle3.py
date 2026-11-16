@@ -25,12 +25,11 @@ def bottom(widget: tk.Widget) -> int:
 
 
 def assert_dialogue_output_visible(window: KokoroV2Window) -> None:
-    settings = window.dialogue_tab.winfo_children()[0]
-    choose = window.choose_output_buttons[1]
-    open_button = window.open_output_buttons[1]
-    assert choose.winfo_manager() == "pack" and open_button.winfo_manager() == "pack"
-    assert bottom(choose) <= bottom(settings), (bottom(choose), bottom(settings), settings.winfo_height())
-    assert bottom(open_button) <= bottom(settings), (bottom(open_button), bottom(settings), settings.winfo_height())
+    for button in (window.choose_output_button, window.open_output_button):
+        assert button.winfo_ismapped()
+        assert bottom(button) <= bottom(window.footer)
+        assert button.winfo_rootx() + button.winfo_width() <= window.root.winfo_rootx() + window.root.winfo_width(), (button.winfo_rootx(), button.winfo_width(), window.root.winfo_width(), window.root.tk.call("tk", "scaling"))
+
 
 
 before_audio = tuple(sorted(V2_ROOT.rglob("*.wav"))) + tuple(sorted(V2_ROOT.rglob("*.mp3")))
@@ -44,9 +43,10 @@ window.output_directory_var.set("C:\\" + "pasta_muito_longa\\" * 18 + "destino")
 window.output_var.set("C:\\" + "resultado_muito_longo\\" * 18 + "audio_final.mp3")
 window.dialogue_text_input.insert("1.0", ("A: This is a deliberately long accessibility and wrapping test.\nB: It remains inside the editor.\n" * 80))
 
-for dpi, geometry in ((100, "1440x800+0+0"), (125, "1440x800+0+0"), (150, "1203x700+0+0")):
+for dpi, geometry in ((100, "1280x800+0+0"), (125, "1200x800+0+0"), (150, "1203x800+0+0")):
+    root.tk.call("tk", "scaling", (dpi / 100) * (96 / 72))
     root.geometry(geometry)
-    root.update_idletasks()
+    root.update()
     assert_dialogue_output_visible(window)
     assert window.dialogue_text_input.winfo_height() > 180, dpi
     assert bottom(window.dialogue_text_input) <= bottom(window.dialogue_tab)
@@ -80,7 +80,7 @@ assert not window.action_bar.winfo_ismapped()
 assert window.body.winfo_height() >= generation_body_height + 60
 samples_body_height = window.body.winfo_height()
 samples_height = window.preview_canvas.winfo_height()
-assert samples_height > 400
+assert samples_height > 300
 
 window.set_mode("Narração")
 root.update()

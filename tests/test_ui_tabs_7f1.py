@@ -33,8 +33,8 @@ window = KokoroV2Window(root, job_runner=lambda *_args, **_kwargs: None, preview
 root.update_idletasks()
 
 tabs = window.workspace_tabs.tabs()
-assert len(tabs) == 3
-assert [window.workspace_tabs.tab(tab, "text") for tab in tabs] == ["Narração", "Conversação", "Samples de vozes"]
+assert len(tabs) == 4
+assert [window.workspace_tabs.tab(tab, "text") for tab in tabs] == ["Narração", "Conversação", "Samples de vozes", "Como usar"]
 assert len(window.generate_buttons) == 1 and len(window.cancel_buttons) == 1 and len(window.pause_buttons) == 1
 assert len(window.progress_bars) == 1 and len(window.job_status_labels) == 1
 assert all(bar.winfo_manager() == "grid" for bar in window.progress_bars)

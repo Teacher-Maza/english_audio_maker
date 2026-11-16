@@ -56,11 +56,11 @@ window = KokoroV2Window(root, job_runner=lambda *_args, **_kwargs: None, preview
 root.update_idletasks()
 
 tabs = window.workspace_tabs.tabs()
-assert [window.workspace_tabs.tab(tab, "text") for tab in tabs] == ["Narração", "Conversação", "Samples de vozes"]
+assert [window.workspace_tabs.tab(tab, "text") for tab in tabs] == ["Narração", "Conversação", "Samples de vozes", "Como usar"]
 assert window.mode_var.get() == MODE_NARRATION_LABEL
 assert window.workspace_tabs.select() == str(window.narration_tab)
 assert window.text_input is window.narration_text_input
-assert len(window.narration_box["values"]) == 29
+assert len(window.narration_box["values"]) == 10
 assert window.generate_button._palette["background"] == MODE_THEMES[MODE_NARRATION_LABEL]["primary"]
 assert window.generate_button._palette["foreground"] == "#FFFFFF"
 assert window.generate_button._palette["shadow"] is None
@@ -88,7 +88,7 @@ root.update_idletasks()
 window._apply_workspace_tab_theme()
 assert window.nav_buttons["Samples"].cget("style") == "V2.NavActive.TButton"
 assert window.activity_panel.winfo_manager() == ""
-assert int(window.workspace_tabs.grid_info()["columnspan"]) == 2
+assert int(window.workspace_tabs.grid_info().get("columnspan", 1)) == 1
 assert window.text_input is window.dialogue_text_input
 window.workspace_tabs.select(window.narration_tab)
 root.update_idletasks()

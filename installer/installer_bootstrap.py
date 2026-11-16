@@ -12,7 +12,7 @@ from pathlib import Path
 
 APP_DIR_NAME = "EnglishAudioMakerV2HumanizationA"
 DATA_DIR_NAME = "EnglishAudioMakerV2HumanizationAData"
-APP_DISPLAY_NAME = "English Audio Maker V2 – Humanization A"
+APP_DISPLAY_NAME = "English Audio Maker"
 
 
 def default_locations() -> tuple[Path, Path, Path]:

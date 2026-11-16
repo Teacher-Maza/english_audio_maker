@@ -4,7 +4,7 @@ import json
 import os
 import threading
 import time
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 from typing import Callable
 
@@ -99,7 +99,8 @@ def _automatic_profile(raw: dict, snapshot: ResourceSnapshot | None, text_charac
     else:
         tier = "normal"
     settings = adaptive["tiers"][tier]
-    threads = max(1, min(int(settings["max_threads"]), logical_cores))
+    # Leave scheduling capacity for the desktop on smaller machines.
+    threads = max(1, min(int(settings["max_threads"]), logical_cores // 2))
     chunk_chars = int(settings["chunk_chars"])
     # A short request never needs artificial subdivision; long requests receive
     # the conservative chunk size selected from the current machine state.
@@ -167,6 +168,48 @@ def apply_runtime_limits(profile: ResourceProfile) -> dict:
         "sequential": profile.sequential,
         "priority_below_normal": priority_applied,
     }
+
+
+class AdaptiveController:
+    """Observe continuously; apply thread changes only between synthesis calls."""
+
+    def __init__(self, profile: ResourceProfile, policy: dict | None = None) -> None:
+        self.policy = policy or load_resource_policy()
+        self._profile = profile
+        self._lock = threading.Lock()
+        self._candidate: ResourceProfile | None = None
+        self._since = 0.0
+        self._samples = 0
+
+    def observe(self, snapshot: ResourceSnapshot) -> ResourceProfile:
+        with self._lock:
+            if not self._profile.adaptive:
+                return self._profile
+            proposed = resolve_profile(PROFILE_AUTOMATIC, self.policy, snapshot=snapshot)
+            # Preserve the approved text boundaries throughout this job.
+            proposed = replace(proposed, chunk_chars=self._profile.chunk_chars)
+            slower = (proposed.threads < self._profile.threads or
+                      proposed.throttle_seconds > self._profile.throttle_seconds)
+            if slower or proposed == self._profile:
+                self._profile = proposed
+                self._candidate = None
+                self._samples = 0
+            else:
+                now = time.monotonic()
+                if proposed != self._candidate:
+                    self._candidate, self._since, self._samples = proposed, now, 0
+                self._samples += 1
+                adaptive = self.policy['adaptive']
+                if (self._samples >= int(adaptive.get('speedup_samples', 3)) and
+                        now - self._since >= float(adaptive.get('speedup_stable_seconds', 5.0))):
+                    self._profile = proposed
+                    self._candidate = None
+                    self._samples = 0
+            return self._profile
+
+    def current(self) -> ResourceProfile:
+        with self._lock:
+            return self._profile
 
 
 def capture_snapshot(output_dir: Path | None = None) -> ResourceSnapshot:
@@ -242,11 +285,17 @@ def wait_for_memory_recovery(
 
     policy = policy or load_resource_policy()
     adaptive = policy["adaptive"]
-    recovery_gb = float(adaptive["runtime_recovery_ram_gb"])
     interval = float(adaptive["recovery_poll_seconds"])
     deadline = time.monotonic() + float(adaptive["max_recovery_wait_seconds"])
     latest = capture_snapshot(output_dir)
-    while latest.available_ram_gb < recovery_gb:
+    # Recovery must satisfy the same RAM gate used immediately afterwards.
+    def recovery_target(snapshot: ResourceSnapshot) -> float:
+        return max(
+            float(adaptive["runtime_recovery_ram_gb"]),
+            _safety_margin_gb(snapshot, policy) + float(adaptive["cold_start_headroom_gb"]),
+        )
+
+    while latest.available_ram_gb < recovery_target(latest):
         if callback:
             callback(latest.to_dict())
         if cancel_event is not None and cancel_event.is_set():

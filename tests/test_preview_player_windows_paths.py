@@ -1,6 +1,8 @@
 from _rc_bootstrap import V2_ROOT
 
 import sys
+import atexit
+import shutil
 
 from v2_kokoro.app.ui.audio_preview import PreviewError, PreviewPlayer
 
@@ -65,8 +67,14 @@ class FakeWaveOutApi:
 
 
 sample_dir = V2_ROOT / "audios" / "blind_english_voices_6u"
-first = sample_dir / "sample_08.wav"
-second = sample_dir / "sample_06.wav"
+test_dir = V2_ROOT / "temp" / "preview_player_windows_paths" / "long folder name with spaces for Windows playback"
+assert (V2_ROOT / "temp").resolve() in test_dir.resolve().parents
+test_dir.mkdir(parents=True, exist_ok=True)
+atexit.register(shutil.rmtree, test_dir, ignore_errors=True)
+first = test_dir / "sample_08.wav"
+second = test_dir / "sample_06.wav"
+shutil.copy2(sample_dir / first.name, first)
+shutil.copy2(sample_dir / second.name, second)
 assert " " in str(first) and len(str(first)) > 100
 before = [(path.name, path.stat().st_size, path.stat().st_mtime_ns) for path in sample_dir.glob("*.wav")]
 

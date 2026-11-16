@@ -22,5 +22,5 @@ assert catalog["ranking_enabled"] is True
 assert catalog["decision_phase"] == "RC-15"
 assert all("review_metadata" in item for item in catalog["voices"])
 assert all(item["status"] == "approved" for item in catalog["voices"])
-assert len(VoiceRegistry().validate_all()) == 28
-print("6W offline paths: local model, FFmpeg and 28 voicepacks OK")
+assert len(VoiceRegistry().validate_all()) == 9
+print("6W offline paths: local model, FFmpeg and 9 voicepacks OK")

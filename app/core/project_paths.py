@@ -51,6 +51,11 @@ def user_data_root() -> Path:
     return _confine_to_root(Path(configured), allowed_root, label="user data root", must_exist=False, allow_root=False)
 
 
+def output_location_config_path() -> Path:
+    data_root = user_data_root()
+    return (data_root if data_root != V2_ROOT else CONFIG_DIR) / "output_location.json"
+
+
 def confine_output_path(path: Path, *, label: str = "output", must_exist: bool = False, allow_root: bool = False) -> Path:
     try:
         return confine_path(path, label=label, must_exist=must_exist, allow_root=allow_root)
@@ -68,23 +73,25 @@ def confine_output_path(path: Path, *, label: str = "output", must_exist: bool =
 
 
 def _authorized_external_output_root() -> Path | None:
-    config = confine_path(OUTPUT_LOCATION_CONFIG, label="output location config")
-    if not config.exists() or config.is_symlink():
-        return None
-    try:
-        data = json.loads(config.read_text(encoding="utf-8"))
-        raw = data.get("selected_output_dir")
-        if not isinstance(raw, str) or not raw.strip() or "\x00" in raw:
-            return None
-        root = Path(raw)
-        if not root.is_absolute():
-            return None
-        lexical = root.absolute()
-        if lexical.is_symlink() or lexical.resolve(strict=False) != lexical or not lexical.is_dir():
-            return None
-        return lexical
-    except (OSError, ValueError, json.JSONDecodeError):
-        return None
+    configs = (output_location_config_path(), OUTPUT_LOCATION_CONFIG)
+    for config in dict.fromkeys(configs):
+        if not config.exists() or config.is_symlink():
+            continue
+        try:
+            data = json.loads(config.read_text(encoding="utf-8"))
+            raw = data.get("selected_output_dir")
+            if not isinstance(raw, str) or not raw.strip() or "\x00" in raw:
+                continue
+            root = Path(raw)
+            if not root.is_absolute():
+                continue
+            lexical = root.absolute()
+            if lexical.is_symlink() or lexical.resolve(strict=False) != lexical or not lexical.is_dir():
+                continue
+            return lexical
+        except (OSError, ValueError, json.JSONDecodeError):
+            continue
+    return None
 
 
 def load_paths() -> dict[str, Path]:

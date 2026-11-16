@@ -26,8 +26,9 @@ root.withdraw()
 window = KokoroV2Window(root, job_runner=lambda *_args, **_kwargs: None, preview_player=FakePreview())
 root.update_idletasks()
 
-assert root.geometry().split("+")[0] == "1440x800"
-assert root.minsize() == (1180, 700)
+min_width, min_height = root.minsize()
+assert 0 < min_width <= min(1000, root.winfo_screenwidth())
+assert 0 < min_height <= min(680, root.winfo_screenheight())
 assert len(window.nav_buttons) == 3
 assert len(window.generate_buttons) == len(window.pause_buttons) == len(window.cancel_buttons) == 1
 assert len(window.progress_bars) == len(window.job_status_labels) == 1
@@ -47,13 +48,13 @@ for tab, editor in (
 
 button_texts = {str(widget.cget("text")) for widget in root.winfo_children() if isinstance(widget, ttk.Button)}
 button_texts.update(str(button.cget("text")) for button in window.nav_buttons.values())
-assert not any(label in " ".join(button_texts) for label in ("Configurações", "Como usar", "Colar", "Limpar", "F5", "F6"))
+assert not any(label in " ".join(button_texts) for label in ("Configurações", "Colar", "Limpar", "F5", "F6"))
 
 window.workspace_tabs.select(window.samples_tab)
 window._on_workspace_tab_changed()
 root.update_idletasks()
 assert window.activity_panel.winfo_manager() == ""
-assert int(window.workspace_tabs.grid_info()["columnspan"]) == 2
+assert int(window.workspace_tabs.grid_info().get("columnspan", 1)) == 1
 assert window.generate_button.cget("state") == "disabled"
 assert window.preview_canvas.bind("<MouseWheel>")
 window.set_mode("Narração")

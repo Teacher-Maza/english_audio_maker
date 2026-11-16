@@ -15,8 +15,8 @@ class VoiceRegistry:
             raise ValueError("V2 voice catalog must not define a default voice")
         voices = data.get("voices", [])
         self._voices = {item["voice_id"]: item for item in voices}
-        if len(voices) != 28 or len(self._voices) != 28:
-            raise ValueError("V2 voice catalog must contain 28 unique voices")
+        if len(voices) != 9 or len(self._voices) != 9:
+            raise ValueError("V2 voice catalog must contain 9 unique voices")
 
     def list_voices(self) -> list[dict]:
         return [dict(self._voices[key]) for key in sorted(self._voices)]

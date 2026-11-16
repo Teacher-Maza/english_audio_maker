@@ -8,6 +8,7 @@ import shutil
 import threading
 import time
 from collections import Counter
+from dataclasses import replace
 from shutil import copy2
 from pathlib import Path
 from typing import Callable
@@ -28,6 +29,8 @@ from .resource_manager import (
     ResourcePressureError,
     ResourceCallback,
     ResourceMonitor,
+    ResourceSnapshot,
+    AdaptiveController,
     apply_runtime_limits,
     evaluate_resources,
     load_resource_policy,
@@ -37,6 +40,7 @@ from .resource_manager import (
 from .prosodic_segmenter import SEGMENTER_ID, segment_text_with_diagnostics
 from .validators import validate_request
 from .voice_registry import VoiceRegistry
+from .recovery_store import RecoveryStore
 from v2_kokoro.app.security.offline_guard import install_offline_guard
 
 
@@ -155,6 +159,7 @@ def _run_generation_local(
     _mp3_validator: Callable | None = None,
     _execution_metadata: dict | None = None,
     _lifecycle_callback: Callable[[dict], None] | None = None,
+    _checkpoint_factory: Callable | None = None,
 ) -> GenerationResult:
     install_offline_guard()
     if not _GENERATION_LOCK.acquire(blocking=False):
@@ -183,6 +188,8 @@ def _run_generation_local(
     audio = None
     profile = None
     resource_plan: dict = {}
+    checkpoint = None
+    reused_chunks = 0
     try:
         _check_cancelled(cancel_event)
         _wait_if_paused(pause_event, cancel_event)
@@ -191,6 +198,7 @@ def _run_generation_local(
         evaluator = _resource_evaluator or evaluate_resources
         decision = evaluator(resource_profile, output_dir=request.output_base_dir)
         profile = resolve_profile(resource_profile, snapshot=decision.snapshot, text_characters=len(request.text))
+        controller = AdaptiveController(profile)
         runtime = {**(_execution_metadata or {}), **apply_runtime_limits(profile)}
         resource_plan = {"initial": decision.plan or {"profile": profile.to_dict()}}
         warnings.extend(decision.warnings)
@@ -212,6 +220,12 @@ def _run_generation_local(
                 },
             )
 
+        if _engine_factory is None or _checkpoint_factory is not None:
+            emit(progress_callback, "checking_recovery", 7)
+            checkpoint = (_checkpoint_factory or RecoveryStore)(request, registry, profile.chunk_chars)
+            profile = replace(profile, chunk_chars=checkpoint.chunk_chars)
+            controller = AdaptiveController(profile)
+            runtime['chunk_chars'] = profile.chunk_chars
         items, final_stem, segmentation = _plan_items(request, max_chunk_chars=profile.chunk_chars)
         resource_plan["segmentation"] = segmentation
         item_count = len(items)
@@ -229,28 +243,35 @@ def _run_generation_local(
                     "work_root": str(_work_root(layout)),
                     "log_file": str(layout.log_file),
                     "final_stem": final_stem,
+                    "recovery_root": str(checkpoint.root) if checkpoint is not None else None,
                 }
             )
         monitor_factory = _monitor_factory or ResourceMonitor
-        monitor = monitor_factory(layout.root, resource_callback)
+        def observe_resources(snapshot: dict) -> None:
+            controller.observe(ResourceSnapshot(**snapshot))
+            if resource_callback is not None:
+                resource_callback(snapshot)
+
+        monitor = monitor_factory(layout.root, observe_resources)
         monitor.start()
-
-        if _engine_factory is None:
-            from .kokoro_engine import KokoroEngine
-
-            engine = KokoroEngine(registry, threads=profile.threads)
-        else:
-            engine = _engine_factory(registry, profile.threads)
 
         for index, (voice_id, text) in enumerate(items, start=1):
             _check_cancelled(cancel_event)
             _wait_if_paused(pause_event, cancel_event)
             if _resource_evaluator is None:
+                percent = 15 + round(55 * (index - 1) / max(1, item_count))
+
+                def recovering(snapshot: dict) -> None:
+                    observe_resources(snapshot)
+                    if snapshot["available_ram_gb"] < resource_plan["initial"].get("minimum_start_available_gb", 0):
+                        emit(progress_callback, "waiting_resources", percent, index, item_count)
+
                 runtime_snapshot = wait_for_memory_recovery(
                     request.output_base_dir,
-                    callback=resource_callback,
+                    callback=recovering,
                     cancel_event=cancel_event,
                 )
+                _check_cancelled(cancel_event)
                 runtime_decision = evaluate_resources(
                     profile.profile_id,
                     snapshot=runtime_snapshot,
@@ -261,27 +282,37 @@ def _run_generation_local(
                 if not runtime_decision.allowed:
                     raise ResourcePressureError("Recursos deixaram de ser seguros durante a geracao: " + " ".join(runtime_decision.blocks))
                 if profile.adaptive:
-                    updated_profile = resolve_profile(
-                        PROFILE_AUTOMATIC,
-                        snapshot=runtime_snapshot,
-                        text_characters=len(request.text),
-                    )
+                    updated_profile = controller.observe(runtime_snapshot)
                     if updated_profile.threads != profile.threads:
                         profile = updated_profile
-                        runtime = apply_runtime_limits(profile)
+                        runtime = {**runtime, **apply_runtime_limits(profile)}
                         set_threads = getattr(engine, "set_threads", None)
                         if callable(set_threads):
                             set_threads(profile.threads)
                     else:
                         profile = updated_profile
-                resource_plan["latest"] = runtime_decision.plan or {"profile": profile.to_dict()}
+                    runtime.update(profile.to_dict())
+                resource_plan["latest"] = {**runtime_decision.plan, "profile": profile.to_dict()}
             percent = 15 + round(55 * (index - 1) / max(1, item_count))
-            emit(progress_callback, "synthesizing", percent, index, item_count)
-            audio = engine.synthesize(text, voice_id, request.speed)
-            _check_cancelled(cancel_event)
-            _wait_if_paused(pause_event, cancel_event)
+            stage = "synthesizing_reduced" if profile.adaptive and profile.throttle_seconds else "synthesizing"
+            emit(progress_callback, stage, percent, index, item_count)
             partial = layout.temp_dir / f"item_{index:03d}.wav"
-            save_wav(partial, audio)
+            if checkpoint is not None and checkpoint.restore(index, partial):
+                reused_chunks += 1
+                emit(progress_callback, "restoring_audio", percent, index, item_count)
+            else:
+                if engine is None:
+                    if _engine_factory is None:
+                        from .kokoro_engine import KokoroEngine
+                        engine = KokoroEngine(registry, threads=profile.threads)
+                    else:
+                        engine = _engine_factory(registry, profile.threads)
+                audio = engine.synthesize(text, voice_id, request.speed)
+                _check_cancelled(cancel_event)
+                _wait_if_paused(pause_event, cancel_event)
+                save_wav(partial, audio)
+                if checkpoint is not None:
+                    checkpoint.save(index, partial)
             job_artifacts.append(partial)
             wav_artifacts.append(partial)
             chunk_wavs.append(partial)
@@ -293,8 +324,11 @@ def _run_generation_local(
             audio = None
             gc.collect()
             if profile.throttle_seconds and index < item_count:
-                emit(progress_callback, "waiting_resources", percent, index, item_count)
-                time.sleep(profile.throttle_seconds)
+                if cancel_event is not None:
+                    cancel_event.wait(profile.throttle_seconds)
+                    _check_cancelled(cancel_event)
+                else:
+                    time.sleep(profile.throttle_seconds)
 
         _check_cancelled(cancel_event)
         _wait_if_paused(pause_event, cancel_event)
@@ -357,6 +391,11 @@ def _run_generation_local(
         created.append(log_relative)
         _check_cancelled(cancel_event)
         emit(progress_callback, "completed", 100, item_count, item_count)
+        if checkpoint is not None:
+            try:
+                checkpoint.discard()
+            except OSError:
+                warnings.append('Audio concluido; alguns arquivos de recuperacao permaneceram no disco.')
         return GenerationResult(
             success=True,
             mode=request.mode,
@@ -368,6 +407,7 @@ def _run_generation_local(
                 "engine": "kokoro",
                 "offline": True,
                 "device": "cpu",
+                "reused_chunks": reused_chunks,
                 "item_count": item_count,
                 "speed_factor": float(request.speed),
                 "full_text_saved": False,
@@ -392,6 +432,13 @@ def _run_generation_local(
                 job_artifacts.append(layout.log_file)
             _remove_known_artifacts(layout, job_artifacts)
             _remove_empty_job_directories(layout, remove_output_root=True)
+        recovery_discarded = True
+        if checkpoint is not None:
+            try:
+                checkpoint.discard()
+            except (OSError, ValueError):
+                recovery_discarded = False
+                warnings.append('Nao foi possivel apagar todo o progresso temporario.')
         emit(progress_callback, "cancelled", 100)
         return GenerationResult(
             success=False,
@@ -405,6 +452,7 @@ def _run_generation_local(
                 "offline": True,
                 "full_text_saved": False,
                 "cancelled": True,
+                "recovery_discarded": recovery_discarded,
                 "job_id": layout.job_id if layout else None,
                 "resource_profile": profile.profile_id if profile else resource_profile,
                 "resource_summary": resource_summary,
@@ -457,6 +505,8 @@ def _run_generation_local(
             },
         )
     finally:
+        if checkpoint is not None:
+            checkpoint.close()
         audio = None
         chunk_wavs.clear()
         if monitor is not None:
@@ -472,13 +522,16 @@ def _run_generation_local(
 def _worker_settings() -> dict[str, float]:
     """Read bounded coordinator timings without changing global machine state."""
     try:
-        raw = load_resource_policy().get("process_isolation", {})
+        policy = load_resource_policy()
+        raw = policy.get("process_isolation", {})
     except Exception:
+        policy = {}
         raw = {}
     return {
         "poll_seconds": min(1.0, max(0.05, float(raw.get("poll_seconds", 0.10)))),
         "cancel_grace_seconds": max(2.0, float(raw.get("cancel_grace_seconds", 20.0))),
         "join_seconds": max(1.0, float(raw.get("join_seconds", 8.0))),
+        "emergency_free_ram_gb": max(0.25, float(policy.get("adaptive", {}).get("emergency_free_ram_gb", 0.5))),
     }
 
 
@@ -597,6 +650,18 @@ def _worker_result(result_queue, timeout: float = 0.0) -> GenerationResult | Non
 
 
 def _stop_worker(worker, join_seconds: float) -> bool:
+    # Also release tools started by this worker (for example FFmpeg).
+    descendants = []
+    if worker.is_alive() and worker.pid is not None:
+        try:
+            descendants = psutil.Process(worker.pid).children(recursive=True)
+        except psutil.Error:
+            pass
+    for child in descendants:
+        try:
+            child.kill()
+        except psutil.Error:
+            pass
     if worker.is_alive():
         worker.terminate()
         worker.join(timeout=join_seconds)
@@ -770,6 +835,7 @@ def _run_generation_isolated(
         worker_pid = worker.pid
         child_process = psutil.Process(worker_pid) if worker_pid is not None else None
         cancel_deadline: float | None = None
+        worker_memory = parent_before
 
         while True:
             if cancel_event is not None and cancel_event.is_set():
@@ -782,7 +848,8 @@ def _run_generation_isolated(
                 child_pause.clear()
 
             if child_process is not None:
-                worker_peak_ram_mb = max(worker_peak_ram_mb, _memory_sample(child_process)["rss_mb"])
+                worker_memory = _memory_sample(child_process)
+                worker_peak_ram_mb = max(worker_peak_ram_mb, worker_memory["rss_mb"])
             layout_info = _consume_worker_events(event_queue, progress_callback, resource_callback, layout_info)
             result = _worker_result(result_queue)
             if result is not None:
@@ -827,9 +894,29 @@ def _run_generation_isolated(
                     isolation,
                 )
 
+            if worker_memory["available_ram_gb"] < settings["emergency_free_ram_gb"]:
+                child_cancel.set()
+                forced_termination = True
+                stopped = _stop_worker(worker, settings["join_seconds"])
+                isolation = _isolated_result_metadata(
+                    worker_pid, worker_peak_ram_mb, parent_before, _memory_sample(),
+                    worker.exitcode, stopped, True,
+                )
+                return _worker_failure_result(
+                    request, progress_callback, layout_info if stopped else None,
+                    "Memoria do computador em nivel critico; geracao interrompida para liberar recursos.",
+                    isolation,
+                )
+
             if cancel_deadline is not None and time.monotonic() >= cancel_deadline:
                 forced_termination = True
-                _stop_worker(worker, settings["join_seconds"])
+                stopped = _stop_worker(worker, settings["join_seconds"])
+                recovery_discarded = stopped
+                if stopped and layout_info and layout_info.get('recovery_root'):
+                    try:
+                        RecoveryStore.discard_abandoned(Path(layout_info['recovery_root']))
+                    except (OSError, ValueError, RuntimeError):
+                        recovery_discarded = False
                 parent_after = _memory_sample()
                 isolation = _isolated_result_metadata(
                     worker_pid,
@@ -840,13 +927,15 @@ def _run_generation_isolated(
                     not worker.is_alive(),
                     True,
                 )
-                return _worker_failure_result(
+                cancelled_result = _worker_failure_result(
                     request,
                     progress_callback,
-                    layout_info,
+                    layout_info if stopped else None,
                     "generation_worker_cancel_timeout",
                     isolation,
                 )
+                cancelled_result.metadata.update(cancelled=True, recovery_discarded=recovery_discarded)
+                return cancelled_result
             time.sleep(settings["poll_seconds"])
     except Exception as exc:
         if worker is not None:

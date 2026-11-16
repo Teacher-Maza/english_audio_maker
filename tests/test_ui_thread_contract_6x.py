@@ -22,7 +22,8 @@ assert "self.root.after" in source
 assert "from v2_kokoro.app.core.job_runner import run_generation" in source
 assert "self.on_preview_stop(\"Geração iniciada. Prévia parada.\")" in source
 assert "self.preview.close()" in source
-assert 'self.root.iconbitmap(default=str(V2_ROOT / "app" / "ui" / "assets" / "app_icon.ico"))' in source
+assert 'icon_path = V2_ROOT / "app" / "ui" / "assets" / "EnglishAudioMaker.ico"' in source
+assert 'self.root.iconbitmap(default=str(icon_path))' in source
 assert "bind_all" not in source and "unbind_all" not in source
 assert "_bind_preview_mousewheel" in source
 assert "V2.Hidden.TNotebook" in source

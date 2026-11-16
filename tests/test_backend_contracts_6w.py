@@ -17,7 +17,7 @@ from v2_kokoro.app.core.voice_registry import VoiceRegistry
 
 registry = VoiceRegistry()
 voice_ids = registry.validate_all()
-assert len(voice_ids) == 28
+assert len(voice_ids) == 9
 voices = registry.list_voices()
 assert all(set(item["review_metadata"]) == {"display_name", "gender", "accent", "favorite", "source"} for item in voices)
 assert all(item["review_metadata"]["gender"] in {"Masculino", "Feminino", "Não classificada"} for item in voices)
@@ -75,7 +75,7 @@ continued_request = GenerationRequest(
     voice_b_id=voice_ids[1],
 )
 validate_request(continued_request, registry)
-continued_items, _, continued_diagnostics = _plan_items(continued_request, max_chunk_chars=280)
+continued_items, _, continued_diagnostics = _plan_items(continued_request, max_chunk_chars=90)
 assert continued_diagnostics["turn_count"] == 2
 assert continued_diagnostics["text_preserved"] is True
 assert {voice for voice, _ in continued_items} == {voice_ids[0], voice_ids[1]}
@@ -115,4 +115,4 @@ for request in invalid_requests:
 
 event = ProgressEvent(stage="synthesizing", percent=50, current=1, total=2)
 assert not hasattr(event, "text")
-print("6W contracts: 28 voices, explicit selections, parser/chunks and errors OK")
+print("6W contracts: 9 voices, explicit selections, parser/chunks and errors OK")

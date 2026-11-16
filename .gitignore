@@ -55,6 +55,7 @@ audios/
 *.msi
 *.dll
 *.pyd
+*.lnk
 
 # Local environment and editor state
 .env
@@ -65,3 +66,8 @@ audios/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Internal planning and listening notes
+docs/KICKOFF.md
+docs/escuta/
+review/

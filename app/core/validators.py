@@ -37,7 +37,7 @@ def validate_request(request: GenerationRequest, registry: VoiceRegistry) -> Non
     if not PROJECT_RE.fullmatch(request.project_name or ""):
         raise ValueError("Project name must use only letters, numbers, underscore or hyphen")
     if float(request.speed) not in ALLOWED_SPEECH_SPEEDS:
-        raise ValueError("Speech speed must be 0.90, 1.00 or 1.10")
+        raise ValueError("Speech speed must be 0.75, 1.00 or 1.25")
     if request.mode == MODE_NARRATION:
         if not request.narration_voice_id:
             raise ValueError("Narration requires an explicit voice selection")

@@ -54,11 +54,11 @@ preview = FakePreview()
 window = KokoroV2Window(root, job_runner=lambda *_args, **_kwargs: None, preview_player=preview)
 root.update_idletasks()
 
-assert root.title() == "English Audio Maker V2 — B2 Official"
-assert len(window.voices) == 28 and len(window.preview_rows) == 28
+assert root.title() == "English Audio Maker"
+assert len(window.voices) == 9 and len(window.preview_rows) == 9
 assert window.narration_voice_var.get() == ""
 assert window.voice_a_var.get() == "" and window.voice_b_var.get() == ""
-assert len(window.narration_box["values"]) == 29
+assert len(window.narration_box["values"]) == 10
 assert window.voice_display_values == [item["display_label"] for item in window.voices]
 favorite_count = sum(item["favorite"] for item in window.voices)
 assert favorite_count > 0
@@ -108,4 +108,4 @@ assert window.progress_item_var.get() == "Item 1 de 2"
 window.on_close()
 assert len(list((v2_root / "audios").rglob("*.wav"))) == before_wav
 assert len(list((v2_root / "audios").rglob("*.mp3"))) == before_mp3
-print("6X UI smoke: 28 voices, neutral selection, preview controls, modes and progress OK")
+print("6X UI smoke: 9 voices, neutral selection, preview controls, modes and progress OK")

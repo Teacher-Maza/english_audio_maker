@@ -5,10 +5,9 @@ import secrets
 from pathlib import Path
 from typing import Callable
 
-from .project_paths import CONFIG_DIR, V2_ROOT, load_paths
+from .project_paths import OUTPUT_LOCATION_CONFIG, V2_ROOT, load_paths, output_location_config_path, user_data_root
 
 
-OUTPUT_LOCATION_CONFIG = CONFIG_DIR / "output_location.json"
 WriteProbe = Callable[[Path], None]
 
 
@@ -57,14 +56,18 @@ def validate_output_directory(path: Path, *, create: bool = False, verify_writab
 
 
 def _settings_path(path: Path | None = None) -> Path:
-    settings = (path or OUTPUT_LOCATION_CONFIG).resolve(strict=False)
-    if settings.is_symlink() or V2_ROOT not in settings.parents:
+    settings = (path or output_location_config_path()).absolute()
+    data_root = user_data_root()
+    allowed_roots = (V2_ROOT, data_root) if data_root != V2_ROOT else (V2_ROOT,)
+    if settings.is_symlink() or settings.resolve(strict=False) != settings or not any(root in settings.parents for root in allowed_roots):
         raise ValueError("Configuração de saída inválida.")
     return settings
 
 
 def load_selected_output_directory(*, settings_path: Path | None = None) -> Path | None:
     settings = _settings_path(settings_path)
+    if settings_path is None and not settings.exists() and settings != OUTPUT_LOCATION_CONFIG:
+        settings = _settings_path(OUTPUT_LOCATION_CONFIG)
     if not settings.exists() or settings.is_symlink():
         return None
     try:

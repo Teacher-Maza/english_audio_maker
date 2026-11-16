@@ -36,28 +36,32 @@ assert "tests" in build and "backups" in build
 assert 'AppId={{A47E24D7-8D8E-4E0C-A2B4-7F6B4DD67A20}' in inno
 assert 'DefaultDirName={localappdata}\\Programs\\EnglishAudioMakerV2HumanizationA' in inno
 assert "CreateUninstallRegKey=yes" in inno
-assert 'AppName=English Audio Maker V2 – Humanization A' in inno
-assert 'AppVersion=2.0.0 Humanization A Baseline' in inno
-assert 'OutputBaseFilename=EnglishAudioMakerV2_Humanization_A_Baseline_Setup' in inno
+uninstall_delete = inno.split("[UninstallDelete]", 1)[1].split("[", 1)[0]
+assert 'Type: filesandordirs;' not in uninstall_delete, "Uninstall must preserve user-added files"
+assert 'Type: dirifempty; Name: "{app}"' in uninstall_delete
+assert 'Type: files; Name: "{app}\\.installation.json"' in uninstall_delete
+assert 'AppName=English Audio Maker' in inno
+assert 'AppVersion=2.0.0' in inno
+assert 'OutputBaseFilename=EnglishAudioMaker_2.0.0_Setup' in inno
 assert 'OutputDir=..\\temp\\final_candidate' in inno
 assert 'Compression=lzma2/normal' in inno and 'SolidCompression=no' in inno
-assert 'SetupIconFile=..\\app\\ui\\assets\\app_icon.ico' in inno
-assert 'UninstallDisplayIcon={app}\\v2_kokoro\\app\\ui\\assets\\app_icon.ico' in inno
-assert inno.count('IconFilename: "{app}\\v2_kokoro\\app\\ui\\assets\\app_icon.ico"') == 1
+assert 'SetupIconFile=..\\app\\ui\\assets\\EnglishAudioMaker.ico' in inno
+assert 'UninstallDisplayIcon={app}\\v2_kokoro\\app\\ui\\assets\\EnglishAudioMaker.ico' in inno
+assert inno.count('IconFilename: "{app}\\v2_kokoro\\app\\ui\\assets\\EnglishAudioMaker.ico"') == 1
 assert 'Name: "desktopicon"' in inno and 'Flags: unchecked' in inno
-assert 'Name: "{autodesktop}\\English Audio Maker V2 – Humanization A"' not in inno
+assert 'Name: "{autodesktop}\\English Audio Maker"' not in inno
 assert "procedure CreateDesktopShortcutAfterPayload();" in inno
-assert "DesktopIconFilename := ExpandConstant('{app}\\v2_kokoro\\app\\ui\\assets\\app_icon.ico');" in inno
+assert "DesktopIconFilename := ExpandConstant('{app}\\v2_kokoro\\app\\ui\\assets\\EnglishAudioMaker.ico');" in inno
 assert "if not FileExists(DesktopIconFilename) then begin" in inno
 assert "CreateShellLink(" in inno and "DesktopIconFilename," in inno
 assert "CreateDesktopShortcutAfterPayload();" in inno
-assert 'Type: files; Name: "{autodesktop}\\English Audio Maker V2 – Humanization A.lnk"' in inno
+assert 'Type: files; Name: "{autodesktop}\\English Audio Maker.lnk"' in inno
 assert 'Source: "{#PayloadRoot}\\*"; DestDir: "{app}"' in inno
 assert '{tmp}\\EAMV2RC' not in inno
 assert '--direct-finalize --install-root' in inno
 assert 'WizardForm.ProgressGauge.Style := npbstMarquee;' in inno
-assert 'Humanization A stage start:' in inno and 'Humanization A stage end:' in inno
-assert (V2_ROOT / "app" / "ui" / "assets" / "app_icon.ico").is_file()
+assert 'Installer stage start:' in inno and 'Installer stage end:' in inno
+assert (V2_ROOT / "app" / "ui" / "assets" / "EnglishAudioMaker.ico").is_file()
 assert 'Uninstall.cmd", PAYLOAD_DIR' not in build
 assert 'uninstall_runtime.py", PAYLOAD_DIR' not in build
 assert '("unins*.exe", "unins*.dat", "unins*.msg")' in bootstrap

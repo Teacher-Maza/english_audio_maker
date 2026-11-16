@@ -46,22 +46,22 @@ emma = window.voice_by_id["bf_emma"]["display_label"]
 puck = window.voice_by_id["am_puck"]["display_label"]
 window.project_var.set("cycle_2_contract")
 window.narration_voice_var.set(heart)
-window.speed_var.set("Devagar")
+window.speed_var.set("Slow (75%)")
 window.narration_text_input.insert("1.0", "A safe narration contract.")
 narration = window.build_request()
 assert narration.mode == MODE_NARRATION and narration.narration_voice_id == "af_heart"
-assert narration.speed == 0.90
+assert narration.speed == 0.75
 window.on_preview_selected(window.narration_voice_var)
 assert preview.voice_id == "af_heart"
 
 window.set_mode("Conversação A/B")
 window.voice_a_var.set(emma)
 window.voice_b_var.set(puck)
-window.speed_var.set("Rápido")
+window.speed_var.set("Fast (125%)")
 window.dialogue_text_input.insert("1.0", "A: Hello.\nB: Welcome.")
 dialogue = window.build_request()
 assert dialogue.mode == MODE_DIALOGUE_AB
-assert (dialogue.voice_a_id, dialogue.voice_b_id, dialogue.speed) == ("bf_emma", "am_puck", 1.10)
+assert (dialogue.voice_a_id, dialogue.voice_b_id, dialogue.speed) == ("bf_emma", "am_puck", 1.25)
 
 window.workspace_tabs.select(window.samples_tab)
 window._on_workspace_tab_changed()

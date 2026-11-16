@@ -1,5 +1,7 @@
 TERMOS DE USO E RESPONSABILIDADE
 English Audio Maker — PROJETO VTS
+Projeto idealizado e coordenado pelo PROJETO VTS. Implementação realizada com
+assistência de ferramentas de inteligência artificial.
 
 Ao instalar e utilizar o English Audio Maker, o usuário declara que leu,
 compreendeu e aceita os seguintes termos:

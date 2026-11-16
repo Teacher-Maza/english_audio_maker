@@ -20,12 +20,11 @@ TERMS_OF_USE_SOURCE = INSTALLER_DIR / "TERMS_OF_USE_PTBR.txt"
 # directory (which also makes diagnostic cleanup safer).
 BUILD_DIR = V2_ROOT / "temp" / "build_humanization_a"
 PAYLOAD_DIR = BUILD_DIR / "payload"
-SITE_PACKAGES = V2_ROOT / ".venv" / "Lib" / "site-packages"
-PYTHON_BASE = Path(sys.base_prefix).resolve()
-VERSION = "2.0.0-humanization-a-baseline"
+PYTHON_BASE = V2_ROOT / "runtime"
+SITE_PACKAGES = PYTHON_BASE / "Lib" / "site-packages"
+VERSION = "2.0.0"
 FIXED_TIMESTAMP = 1735689600
 CONFIG_ALLOWLIST = (
-    "output_location.json",
     "paths.json",
     "resource_policy.json",
     "voices.json",
@@ -61,6 +60,8 @@ def common_ignore(_directory: str, names: list[str]) -> set[str]:
 def site_packages_ignore(directory: str, names: list[str]) -> set[str]:
     ignored = common_ignore(directory, names)
     current = Path(directory).resolve()
+    if current == SITE_PACKAGES.resolve():
+        ignored.update({"pip", "pip-25.0.1.dist-info"})
     if current == (SITE_PACKAGES / "torch").resolve():
         # Runtime inference needs the Python modules and DLLs, not the C++/CUDA
         # development headers. Excluding them also avoids legacy MAX_PATH
@@ -86,9 +87,9 @@ def base_ignore(directory: str, names: list[str]) -> set[str]:
     ignored = common_ignore(directory, names)
     current = Path(directory).resolve()
     if current == PYTHON_BASE:
-        ignored.update(name for name in names if name in {"Scripts", "Tools", "Doc", "include", "libs"})
+        ignored.update(name for name in names if name in {"Scripts", "Tools", "Doc", "include", "libs", "NEWS.txt"})
     if current == PYTHON_BASE / "Lib":
-        ignored.add("site-packages")
+        ignored.update({"site-packages", "ensurepip", "idlelib", "venv"})
     return ignored
 
 
@@ -106,7 +107,17 @@ def copy_application() -> None:
     target_config.mkdir(parents=True)
     for name in CONFIG_ALLOWLIST:
         shutil.copy2(V2_ROOT / "config" / name, target_config / name)
-    shutil.copytree(V2_ROOT / "models", app_root / "models", ignore=common_ignore)
+    # Ship only the selected voices, even if other local voicepacks remain.
+    catalog = json.loads((V2_ROOT / "config" / "voices.json").read_text(encoding="utf-8"))
+    model_files = ["models/Kokoro-82M/config.json", "models/Kokoro-82M/kokoro-v1_0.pth"]
+    model_files.extend(voice["voicepack_path"] for voice in catalog["voices"])
+    for relative in model_files:
+        source = (V2_ROOT / relative).resolve()
+        if (V2_ROOT / "models").resolve() not in source.parents:
+            raise ValueError("Unsafe model asset path")
+        destination = app_root / source.relative_to(V2_ROOT)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, destination)
     shutil.copytree(V2_ROOT / "tools", app_root / "tools", ignore=tools_ignore)
     shutil.copy2(V2_ROOT / "requirements.lock.txt", app_root / "requirements.lock.txt")
 
@@ -138,6 +149,7 @@ def copy_application() -> None:
 
 def copy_essential_documents() -> None:
     shutil.copy2(TERMS_OF_USE_SOURCE, PAYLOAD_DIR / "TERMS_OF_USE.txt")
+    shutil.copy2(V2_ROOT / "LICENSE", PAYLOAD_DIR / "LICENSE.txt")
 
 
 def spdx_id(name: str) -> str:
@@ -152,14 +164,16 @@ def create_licenses_and_sbom() -> None:
     shutil.copy2(kokoro_license, licenses / "KOKORO_APACHE_2_0.txt")
     gpl3_license = SITE_PACKAGES / "phonemizer_fork-3.3.2.dist-info" / "licenses" / "LICENSE"
     shutil.copy2(gpl3_license, licenses / "GPL_3_0.txt")
-    torch_license = SITE_PACKAGES / "torch-2.13.0.dist-info" / "licenses" / "LICENSE"
-    shutil.copy2(torch_license, licenses / "TORCH_LICENSE.txt")
+    torch_licenses = INSTALLER_DIR / "legal" / "TORCH_LICENSES.txt"
+    shutil.copy2(torch_licenses, licenses / "TORCH_LICENSES.txt")
 
     packages = []
     notices = ["# Third-party notices", "", "Generated from installed package metadata; no network lookup was used.", ""]
     distributions = sorted(importlib.metadata.distributions(path=[str(SITE_PACKAGES)]), key=lambda item: (item.metadata.get("Name") or "").lower())
     for distribution in distributions:
         name = distribution.metadata.get("Name") or "unknown"
+        if name.lower() == "pip":
+            continue
         version = distribution.version or "unknown"
         declared = distribution.metadata.get("License-Expression") or distribution.metadata.get("License") or "NOASSERTION"
         packages.append({
@@ -174,7 +188,7 @@ def create_licenses_and_sbom() -> None:
         notices.append(f"- {name} {version}: {declared[:200]}")
 
     packages.extend([
-        {"SPDXID": "SPDXRef-App", "name": "English Audio Maker V2 – Humanization A", "versionInfo": VERSION, "downloadLocation": "NOASSERTION", "licenseConcluded": "NOASSERTION", "licenseDeclared": "NOASSERTION", "supplier": "Organization: PROJETO VTS"},
+        {"SPDXID": "SPDXRef-App", "name": "English Audio Maker", "versionInfo": VERSION, "downloadLocation": "NOASSERTION", "licenseConcluded": "MIT", "licenseDeclared": "MIT", "supplier": "NOASSERTION"},
         {"SPDXID": "SPDXRef-KokoroModel", "name": "Kokoro-82M model and voicepacks", "versionInfo": "1.0", "downloadLocation": "NOASSERTION", "licenseConcluded": "Apache-2.0", "licenseDeclared": "Apache-2.0", "supplier": "Organization: hexgrad"},
         {"SPDXID": "SPDXRef-FFmpeg", "name": "FFmpeg portable", "versionInfo": "8.1.2", "downloadLocation": "NOASSERTION", "licenseConcluded": "NOASSERTION", "licenseDeclared": "GPL-3.0-or-later", "supplier": "Organization: FFmpeg project / Gyan.dev build"},
         {"SPDXID": "SPDXRef-Python", "name": "Python", "versionInfo": "3.12.10", "downloadLocation": "NOASSERTION", "licenseConcluded": "Python-2.0", "licenseDeclared": "Python-2.0", "supplier": "Organization: Python Software Foundation"},
@@ -183,7 +197,7 @@ def create_licenses_and_sbom() -> None:
         "",
         "- Kokoro-82M model and voicepacks: Apache-2.0.",
         "- Python 3.12.10: Python Software Foundation License; full text included.",
-        "- PyTorch 2.13.0+cpu: BSD-style license; full primary text included.",
+        "- PyTorch 2.13.0+cpu: wheel license files included in TORCH_LICENSES.txt.",
         "- FFmpeg portable 8.1.2: GPL-enabled build; source and license information: https://ffmpeg.org/ and https://www.gyan.dev/ffmpeg/builds/.",
     ])
     (licenses / "THIRD_PARTY_NOTICES.md").write_text("\n".join(notices) + "\n", encoding="utf-8")
@@ -212,7 +226,7 @@ def create_payload_manifest() -> dict:
         "created_utc": "2026-07-11T00:00:00Z",
         "files": files,
         "exclusions": ["tests", "cache", "generated audio", "backups", "build scripts"],
-        "bundled_assets": {"voice_preview_wav": 28},
+        "bundled_assets": {"voice_preview_wav": len(json.loads((V2_ROOT / "config" / "voices.json").read_text(encoding="utf-8"))["voices"])},
     }
     path = PAYLOAD_DIR / "PAYLOAD_MANIFEST.json"
     path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
